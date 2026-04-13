@@ -4,58 +4,55 @@
     <meta charset="UTF-8">
     <title>PRO-QUANT v16 | PREDATOR CORE</title>
     <style>
-        body { background-color: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
-        .container { max-width: 900px; margin: auto; border: 1px solid #00ff00; padding: 20px; box-shadow: 0 0 20px #004400; }
-        h1 { text-align: center; border-bottom: 2px solid #00ff00; padding-bottom: 10px; letter-spacing: 3px; }
+        body { background-color: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; text-align: center; }
+        .container { max-width: 800px; margin: auto; border: 1px solid #00ff00; padding: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #004400; padding: 12px; text-align: center; }
+        th, td { border: 1px solid #004400; padding: 12px; }
         th { background-color: #002200; }
-        .strong_buy { color: #00ff00; font-weight: bold; background: #003300; }
-        .buy { color: #00ff00; }
+        .buy { color: #00ff00; font-weight: bold; }
         .sell { color: #ff0000; font-weight: bold; }
-        .status { font-size: 10px; color: #888; text-align: right; margin-top: 10px; }
+        .status { margin-top: 15px; font-size: 11px; color: #888; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>PREDATOR ENGINE v16</h1>
+        <h2>PREDATOR ENGINE v16</h2>
         <table>
             <thead>
                 <tr>
                     <th>TICKER</th>
                     <th>PRICE</th>
                     <th>CHG %</th>
-                    <th>PREDATOR SIGNAL</th>
+                    <th>SIGNAL</th>
                 </tr>
             </thead>
-            <tbody id="table-body">
-                <tr><td colspan="4">INITIATING DATA STREAM...</td></tr>
+            <tbody id="content">
+                <tr><td colspan="4">CONNECTING TO DATA STREAM...</td></tr>
             </tbody>
         </table>
-        <div class="status">SOURCE: REAL-TIME CLOUD AGGREGATOR | <span id="clock"></span></div>
+        <div class="status">Sistem otomatis refresh setiap 30 detik | <span id="clock"></span></div>
     </div>
 
     <script>
-        async function updateTable() {
+        async function update() {
             try {
-                const res = await fetch('/api/signals');
-                const data = await res.json();
-                const body = document.getElementById('table-body');
-                body.innerHTML = '';
-                
-                data.forEach(s => {
-                    body.innerHTML += `<tr>
+                const r = await fetch('/api/signals');
+                const d = await r.json();
+                const b = document.getElementById('content');
+                b.innerHTML = '';
+                d.forEach(s => {
+                    b.innerHTML += `<tr>
                         <td>${s.ticker}</td>
                         <td>${s.price}</td>
                         <td style="color:${s.change >= 0 ? '#0ff' : '#f00'}">${s.change}%</td>
-                        <td class="${s.signal.toLowerCase().replace(' ', '_')}">${s.signal}</td>
+                        <td class="${s.signal.toLowerCase()}">${s.signal}</td>
                     </tr>`;
                 });
                 document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-            } catch (e) { console.error("Sync Error"); }
+            } catch (e) { document.getElementById('content').innerHTML = "<tr><td colspan='4'>SERVER OFFLINE</td></tr>"; }
         }
-        setInterval(updateTable, 30000);
-        updateTable();
+        update();
+        setInterval(update, 30000);
     </script>
 </body>
 </html>
