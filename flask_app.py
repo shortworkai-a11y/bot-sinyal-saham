@@ -1,53 +1,56 @@
 from flask import Flask, render_template, jsonify
-import requests
+import yfinance as yf
 import pandas as pd
 import os
 
 app = Flask(__name__)
 
-# List Saham Pilihan
-WATCHLIST = ['BBCA', 'BBRI', 'BMRI', 'TLKM', 'ASII', 'GOTO']
+# Gunakan 4 saham saja dulu untuk tes. Jika muncul, baru tambah lagi.
+WATCHLIST = ['BBCA.JK', 'BBRI.JK', 'TLKM.JK', 'ASII.JK']
 
 def get_signals():
     data_list = []
     
+    # Setup Session agar tidak dianggap bot
+    import requests
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    })
+
     for ticker in WATCHLIST:
         try:
-            # Menggunakan API publik alternatif yang lebih stabil untuk data IHSG
-            # Kita mengambil data dari penyedia data pasar yang mendukung CORS/Cloud
-            url = f"https://api.goapi.io/stock/idx/{ticker}/latest?api_key=FREE_TRIAL_KEY" 
-            # Note: Gunakan yfinance kembali dengan optimasi header jika API di atas limit
+            # Menggunakan session dan proxy-less fetch
+            stock = yf.Ticker(ticker, session=session)
             
-            import yfinance as yf
-            stock = yf.Ticker(f"{ticker}.JK")
-            df = stock.history(period='2d', interval='1h')
+            # Ambil data minimal (1 hari terakhir dengan interval 15 menit)
+            # Ini jauh lebih ringan dan cepat daripada data harian/mingguan
+            df = stock.history(period='1d', interval='15m')
             
-            if df.empty:
+            if df.empty or len(df) < 2:
                 continue
                 
             last_price = float(df['Close'].iloc[-1])
-            prev_close = float(df['Close'].iloc[-2])
-            change = ((last_price - prev_close) / prev_close) * 100
+            prev_price = float(df['Close'].iloc[-2])
+            change = ((last_price - prev_price) / prev_price) * 100
             
-            # Algoritma Predator: Price Action + Trend
-            avg_price = df['Close'].mean()
-            if last_price > avg_price and change > 0:
-                signal = "STRONG BUY"
-            elif last_price > avg_price:
+            # Algoritma Sederhana: Buy jika harga terakhir > harga pembukaan hari ini
+            open_price = float(df['Open'].iloc[0])
+            if last_price > open_price:
                 signal = "BUY"
-            elif last_price < avg_price:
+            elif last_price < open_price:
                 signal = "SELL"
             else:
                 signal = "NEUTRAL"
                 
             data_list.append({
-                'ticker': ticker,
+                'ticker': ticker.replace('.JK', ''),
                 'price': f"{last_price:,.0f}",
                 'change': round(change, 2),
                 'signal': signal
             })
         except Exception as e:
-            print(f"Error {ticker}: {e}")
+            print(f"Gagal akses {ticker}: {e}")
             continue
             
     return data_list
@@ -58,7 +61,11 @@ def index():
 
 @app.route('/api/signals')
 def api_signals():
-    return jsonify(get_signals())
+    # Jika hasil fungsi kosong, kirim pesan error yang jelas
+    signals = get_signals()
+    if not signals:
+        return jsonify([{"ticker": "ERROR", "price": "0", "change": 0, "signal": "LIMIT SERVER"}]), 200
+    return jsonify(signals)
 
 if __name__ == '__main__':
     app.run(debug=True)
