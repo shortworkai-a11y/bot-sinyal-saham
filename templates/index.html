@@ -1,7 +1,12 @@
 async function updateSignals() {
     const tbody = document.getElementById('table-body');
+    if (!tbody) return;
+
     try {
         const response = await fetch('/api/signals');
+        // Cek jika response sukses (status 200)
+        if (!response.ok) throw new Error("Server Error");
+        
         const data = await response.json();
         
         if (!data || data.length === 0) {
@@ -9,11 +14,12 @@ async function updateSignals() {
             return;
         }
 
-        tbody.innerHTML = '';
+        let htmlContent = '';
         data.forEach(item => {
-            const signalClass = item.signal.toLowerCase().replace(' ', '-');
+            const signalClass = item.signal.toLowerCase().replace(/\s+/g, '-');
             const color = item.change >= 0 ? '#3fb950' : '#f85149';
-            tbody.innerHTML += `
+            
+            htmlContent += `
                 <tr>
                     <td><strong>${item.ticker}</strong></td>
                     <td>Rp ${item.price}</td>
@@ -21,11 +27,16 @@ async function updateSignals() {
                     <td class="${signalClass}">${item.signal}</td>
                 </tr>`;
         });
+        
+        tbody.innerHTML = htmlContent;
         document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="4">Koneksi Terputus. Refresh Halaman.</td></tr>';
+        console.error("Fetch error:", error);
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#f85149">Koneksi Timeout. Coba Refresh Halaman.</td></tr>';
     }
 }
 
+// Jalankan segera
 updateSignals();
+// Refresh setiap 1 menit
 setInterval(updateSignals, 60000);
