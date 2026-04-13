@@ -3,94 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VANMORT SOVEREIGN | QUANT ENGINE</title>
+    <title>VANMORT SOVEREIGN v7.0</title>
     <style>
-        :root { --bg: #010409; --panel: #0d1117; --accent: #58a6ff; --green: #3fb950; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; }
-        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
-        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
-        .tab-btn { padding: 10px 20px; background: var(--panel); border: 1px solid var(--border); color: #8b949e; cursor: pointer; border-radius: 6px; transition: 0.3s; }
-        .tab-btn.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(88, 166, 255, 0.2); }
-        .grid-container { padding: 0 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        th { background: #161b22; padding: 15px; font-size: 11px; text-transform: uppercase; color: #8b949e; text-align: left; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --green: #3fb950; --border: #30363d; }
+        body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; }
+        .header { padding: 30px 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
+        .tab-container { display: flex; justify-content: center; gap: 10px; margin: 25px 0; }
+        .tab { padding: 12px 24px; background: var(--panel); border: 1px solid var(--border); color: #8b949e; cursor: pointer; border-radius: 6px; font-weight: 600; }
+        .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+        .content { max-width: 1100px; margin: auto; padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        th { background: #010409; padding: 15px; font-size: 11px; text-transform: uppercase; color: #8b949e; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); text-align: center; font-size: 14px; }
         .ticker { color: var(--accent); font-weight: bold; }
-        .value-badge { background: rgba(63, 185, 80, 0.1); color: var(--green); padding: 3px 8px; border-radius: 4px; font-size: 12px; }
-        .loading { text-align: center; padding: 50px; font-style: italic; color: #8b949e; }
+        .premium-tag { background: rgba(63, 185, 80, 0.15); color: var(--green); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid var(--green); }
+        .loading-state { padding: 50px; text-align: center; color: #8b949e; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 style="margin:0; letter-spacing: 2px; font-size: 20px;">VANMORT SOVEREIGN v7.0</h1>
-        <p style="font-size: 12px; color: #8b949e;">AUTOMATED VALUE INVESTING SCANNER</p>
+        <h1 style="margin:0; font-size: 24px; letter-spacing: 3px;">VANMORT SOVEREIGN v7.0</h1>
+        <p style="color: #8b949e; margin-top: 5px;">Deep Value Investing Scanner (800+ IDX Stocks)</p>
     </div>
 
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('big')">BIG CAP (>2000)</button>
-        <button class="tab-btn" onclick="switchTab('mid')">MID CAP (<2000)</button>
-        <button class="tab-btn" onclick="switchTab('small')">SMALL CAP (<300)</button>
+    <div class="tab-container">
+        <div class="tab active" onclick="setTab('big', this)">BIG CAP (>2000)</div>
+        <div class="tab" onclick="setTab('mid', this)">MID CAP (<2000)</div>
+        <div class="tab" onclick="setTab('small', this)">SMALL CAP (<300)</div>
     </div>
 
-    <div class="grid-container">
-        <table id="data-table">
+    <div class="content">
+        <table>
             <thead>
                 <tr>
-                    <th>Ticker</th>
-                    <th>Price</th>
-                    <th>PE Ratio</th>
+                    <th>TICKER</th>
+                    <th>PRICE</th>
+                    <th>PE (TTM)</th>
                     <th>PBV</th>
-                    <th>ROE</th>
-                    <th>Status</th>
+                    <th>ROE (%)</th>
+                    <th>DER</th>
+                    <th>STATUS</th>
                 </tr>
             </thead>
-            <tbody id="table-body">
-                <tr><td colspan="6" class="loading">Memindai 800+ Saham IDX...</td></tr>
+            <tbody id="main-table">
+                <tr><td colspan="7" class="loading-state">Memindai seluruh Emiten Indonesia...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        let currentData = {};
-        let activeSegment = 'big';
+        let allData = {};
+        let currentTab = 'big';
 
-        async function loadData() {
+        async function initScanner() {
             try {
-                const res = await fetch('/api/signals');
-                currentData = await res.json();
-                renderTable();
-            } catch (e) { console.error(e); }
+                const response = await fetch('/api/signals');
+                allData = await response.json();
+                render();
+            } catch (e) {
+                document.getElementById('main-table').innerHTML = '<tr><td colspan="7">Gagal sinkronisasi data. Silakan refresh.</td></tr>';
+            }
         }
 
-        function switchTab(seg) {
-            activeSegment = seg;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            renderTable();
+        function setTab(category, el) {
+            currentTab = category;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            render();
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('table-body');
-            const data = currentData[activeSegment] || [];
+        function render() {
+            const tbody = document.getElementById('main-table');
+            const stocks = allData[currentTab] || [];
             
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">Tidak ada saham yang memenuhi kriteria premium di segmen ini.</td></tr>';
+            if (stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading-state">Tidak ada saham yang memenuhi 7 kriteria premium di segmen ini.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = data.map(s => `
+            tbody.innerHTML = stocks.map(s => `
                 <tr>
                     <td class="ticker">${s.symbol}</td>
                     <td>Rp ${s.price.toLocaleString()}</td>
-                    <td>${s.pe.toFixed(2)}x</td>
-                    <td>${s.pbv.toFixed(2)}x</td>
-                    <td>${s.roe.toFixed(2)}%</td>
-                    <td><span class="value-badge">UNDERVALUED</span></td>
+                    <td>${s.pe}x</td>
+                    <td>${s.pbv}x</td>
+                    <td>${s.roe}%</td>
+                    <td>${s.der}</td>
+                    <td><span class="premium-tag">PREMIUM</span></td>
                 </tr>
             `).join('');
         }
 
-        loadData();
+        initScanner();
     </script>
 </body>
 </html>
