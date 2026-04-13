@@ -1,42 +1,81 @@
-async function updateSignals() {
-    const tbody = document.getElementById('table-body');
-    if (!tbody) return;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PREDATOR v16.7 | LIVE</title>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+        h1 { text-align: center; color: #58a6ff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #30363d; }
+        .strong-buy { color: #3fb950; font-weight: bold; background: rgba(63,185,80,0.1); }
+        .buy { color: #3fb950; }
+        .strong-sell { color: #f85149; font-weight: bold; background: rgba(248,81,73,0.1); }
+        .sell { color: #f85149; }
+        .footer { text-align: center; font-size: 11px; color: #484f58; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PREDATOR ENGINE v16.7</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>STOCK</th>
+                    <th>PRICE</th>
+                    <th>CHANGE</th>
+                    <th>SIGNAL</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr><td colspan="4">Inisialisasi Sistem...</td></tr>
+            </tbody>
+        </table>
+        <div class="footer">
+            SYNC: <span id="clock">-</span> | SOURCE: YAHOO FINANCE
+        </div>
+    </div>
 
-    try {
-        const response = await fetch('/api/signals');
-        // Cek jika response sukses (status 200)
-        if (!response.ok) throw new Error("Server Error");
-        
-        const data = await response.json();
-        
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4">Menunggu respon server Yahoo...</td></tr>';
-            return;
+    <script>
+        async function updateSignals() {
+            const tbody = document.getElementById('table-body');
+            try {
+                const response = await fetch('/api/signals');
+                if (!response.ok) throw new Error("Server Error");
+                
+                const data = await response.json();
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">Menunggu respon server Yahoo...</td></tr>';
+                    return;
+                }
+
+                let htmlContent = '';
+                data.forEach(item => {
+                    const signalClass = item.signal.toLowerCase().replace(/\s+/g, '-');
+                    const color = item.change >= 0 ? '#3fb950' : '#f85149';
+                    
+                    htmlContent += `
+                        <tr>
+                            <td><strong>${item.ticker}</strong></td>
+                            <td>Rp ${item.price}</td>
+                            <td style="color: ${color}">${item.change}%</td>
+                            <td class="${signalClass}">${item.signal}</td>
+                        </tr>`;
+                });
+                
+                tbody.innerHTML = htmlContent;
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error("Fetch error:", error);
+                tbody.innerHTML = '<tr><td colspan="4" style="color:#f85149">Koneksi Timeout. Me-refresh otomatis...</td></tr>';
+            }
         }
 
-        let htmlContent = '';
-        data.forEach(item => {
-            const signalClass = item.signal.toLowerCase().replace(/\s+/g, '-');
-            const color = item.change >= 0 ? '#3fb950' : '#f85149';
-            
-            htmlContent += `
-                <tr>
-                    <td><strong>${item.ticker}</strong></td>
-                    <td>Rp ${item.price}</td>
-                    <td style="color: ${color}">${item.change}%</td>
-                    <td class="${signalClass}">${item.signal}</td>
-                </tr>`;
-        });
-        
-        tbody.innerHTML = htmlContent;
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-    } catch (error) {
-        console.error("Fetch error:", error);
-        tbody.innerHTML = '<tr><td colspan="4" style="color:#f85149">Koneksi Timeout. Coba Refresh Halaman.</td></tr>';
-    }
-}
-
-// Jalankan segera
-updateSignals();
-// Refresh setiap 1 menit
-setInterval(updateSignals, 60000);
+        updateSignals();
+        setInterval(updateSignals, 60000);
+    </script>
+</body>
+</html>
