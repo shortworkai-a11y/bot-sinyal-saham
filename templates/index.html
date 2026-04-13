@@ -3,79 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PREDATOR v16.7 | LIVE</title>
+    <title>VANMORT SOVEREIGN | QUANT ENGINE</title>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
-        h1 { text-align: center; color: #58a6ff; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #30363d; }
-        .strong-buy { color: #3fb950; font-weight: bold; background: rgba(63,185,80,0.1); }
-        .buy { color: #3fb950; }
-        .strong-sell { color: #f85149; font-weight: bold; background: rgba(248,81,73,0.1); }
-        .sell { color: #f85149; }
-        .footer { text-align: center; font-size: 11px; color: #484f58; margin-top: 20px; }
+        :root { --bg: #010409; --panel: #0d1117; --accent: #58a6ff; --green: #3fb950; --border: #30363d; }
+        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; margin: 0; }
+        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
+        .nav-tabs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+        .tab-btn { padding: 10px 20px; background: var(--panel); border: 1px solid var(--border); color: #8b949e; cursor: pointer; border-radius: 6px; transition: 0.3s; }
+        .tab-btn.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(88, 166, 255, 0.2); }
+        .grid-container { padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        th { background: #161b22; padding: 15px; font-size: 11px; text-transform: uppercase; color: #8b949e; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .ticker { color: var(--accent); font-weight: bold; }
+        .value-badge { background: rgba(63, 185, 80, 0.1); color: var(--green); padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .loading { text-align: center; padding: 50px; font-style: italic; color: #8b949e; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>PREDATOR ENGINE v16.7</h1>
-        <table>
+    <div class="header">
+        <h1 style="margin:0; letter-spacing: 2px; font-size: 20px;">VANMORT SOVEREIGN v7.0</h1>
+        <p style="font-size: 12px; color: #8b949e;">AUTOMATED VALUE INVESTING SCANNER</p>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('big')">BIG CAP (>2000)</button>
+        <button class="tab-btn" onclick="switchTab('mid')">MID CAP (<2000)</button>
+        <button class="tab-btn" onclick="switchTab('small')">SMALL CAP (<300)</button>
+    </div>
+
+    <div class="grid-container">
+        <table id="data-table">
             <thead>
                 <tr>
-                    <th>STOCK</th>
-                    <th>PRICE</th>
-                    <th>CHANGE</th>
-                    <th>SIGNAL</th>
+                    <th>Ticker</th>
+                    <th>Price</th>
+                    <th>PE Ratio</th>
+                    <th>PBV</th>
+                    <th>ROE</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                <tr><td colspan="4">Inisialisasi Sistem...</td></tr>
+                <tr><td colspan="6" class="loading">Memindai 800+ Saham IDX...</td></tr>
             </tbody>
         </table>
-        <div class="footer">
-            SYNC: <span id="clock">-</span> | SOURCE: YAHOO FINANCE
-        </div>
     </div>
 
     <script>
-        async function updateSignals() {
-            const tbody = document.getElementById('table-body');
-            try {
-                const response = await fetch('/api/signals');
-                if (!response.ok) throw new Error("Server Error");
-                
-                const data = await response.json();
-                
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4">Menunggu respon server Yahoo...</td></tr>';
-                    return;
-                }
+        let currentData = {};
+        let activeSegment = 'big';
 
-                let htmlContent = '';
-                data.forEach(item => {
-                    const signalClass = item.signal.toLowerCase().replace(/\s+/g, '-');
-                    const color = item.change >= 0 ? '#3fb950' : '#f85149';
-                    
-                    htmlContent += `
-                        <tr>
-                            <td><strong>${item.ticker}</strong></td>
-                            <td>Rp ${item.price}</td>
-                            <td style="color: ${color}">${item.change}%</td>
-                            <td class="${signalClass}">${item.signal}</td>
-                        </tr>`;
-                });
-                
-                tbody.innerHTML = htmlContent;
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-            } catch (error) {
-                console.error("Fetch error:", error);
-                tbody.innerHTML = '<tr><td colspan="4" style="color:#f85149">Koneksi Timeout. Me-refresh otomatis...</td></tr>';
-            }
+        async function loadData() {
+            try {
+                const res = await fetch('/api/signals');
+                currentData = await res.json();
+                renderTable();
+            } catch (e) { console.error(e); }
         }
 
-        updateSignals();
-        setInterval(updateSignals, 60000);
+        function switchTab(seg) {
+            activeSegment = seg;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            const data = currentData[activeSegment] || [];
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">Tidak ada saham yang memenuhi kriteria premium di segmen ini.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td class="ticker">${s.symbol}</td>
+                    <td>Rp ${s.price.toLocaleString()}</td>
+                    <td>${s.pe.toFixed(2)}x</td>
+                    <td>${s.pbv.toFixed(2)}x</td>
+                    <td>${s.roe.toFixed(2)}%</td>
+                    <td><span class="value-badge">UNDERVALUED</span></td>
+                </tr>
+            `).join('');
+        }
+
+        loadData();
     </script>
 </body>
 </html>
