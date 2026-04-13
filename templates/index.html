@@ -1,100 +1,26 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VANMORT SOVEREIGN v7.0</title>
-    <style>
-        :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --green: #3fb950; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; }
-        .header { padding: 30px 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
-        .tab-container { display: flex; justify-content: center; gap: 10px; margin: 25px 0; }
-        .tab { padding: 12px 24px; background: var(--panel); border: 1px solid var(--border); color: #8b949e; cursor: pointer; border-radius: 6px; font-weight: 600; }
-        .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(88, 166, 255, 0.1); }
-        .content { max-width: 1100px; margin: auto; padding: 0 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-        th { background: #010409; padding: 15px; font-size: 11px; text-transform: uppercase; color: #8b949e; letter-spacing: 1px; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); text-align: center; font-size: 14px; }
-        .ticker { color: var(--accent); font-weight: bold; }
-        .premium-tag { background: rgba(63, 185, 80, 0.15); color: var(--green); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; border: 1px solid var(--green); }
-        .loading-state { padding: 50px; text-align: center; color: #8b949e; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1 style="margin:0; font-size: 24px; letter-spacing: 3px;">VANMORT SOVEREIGN v7.0</h1>
-        <p style="color: #8b949e; margin-top: 5px;">Deep Value Investing Scanner (800+ IDX Stocks)</p>
-    </div>
+function render() {
+    const tbody = document.getElementById('main-table');
+    const stocks = allData[currentTab] || [];
+    
+    if (stocks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-state">Tidak ada saham yang mendekati kriteria. Coba cek segmen lain.</td></tr>';
+        return;
+    }
 
-    <div class="tab-container">
-        <div class="tab active" onclick="setTab('big', this)">BIG CAP (>2000)</div>
-        <div class="tab" onclick="setTab('mid', this)">MID CAP (<2000)</div>
-        <div class="tab" onclick="setTab('small', this)">SMALL CAP (<300)</div>
-    </div>
-
-    <div class="content">
-        <table>
-            <thead>
-                <tr>
-                    <th>TICKER</th>
-                    <th>PRICE</th>
-                    <th>PE (TTM)</th>
-                    <th>PBV</th>
-                    <th>ROE (%)</th>
-                    <th>DER</th>
-                    <th>STATUS</th>
-                </tr>
-            </thead>
-            <tbody id="main-table">
-                <tr><td colspan="7" class="loading-state">Memindai seluruh Emiten Indonesia...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <script>
-        let allData = {};
-        let currentTab = 'big';
-
-        async function initScanner() {
-            try {
-                const response = await fetch('/api/signals');
-                allData = await response.json();
-                render();
-            } catch (e) {
-                document.getElementById('main-table').innerHTML = '<tr><td colspan="7">Gagal sinkronisasi data. Silakan refresh.</td></tr>';
-            }
-        }
-
-        function setTab(category, el) {
-            currentTab = category;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-            render();
-        }
-
-        function render() {
-            const tbody = document.getElementById('main-table');
-            const stocks = allData[currentTab] || [];
-            
-            if (stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading-state">Tidak ada saham yang memenuhi 7 kriteria premium di segmen ini.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = stocks.map(s => `
-                <tr>
-                    <td class="ticker">${s.symbol}</td>
-                    <td>Rp ${s.price.toLocaleString()}</td>
-                    <td>${s.pe}x</td>
-                    <td>${s.pbv}x</td>
-                    <td>${s.roe}%</td>
-                    <td>${s.der}</td>
-                    <td><span class="premium-tag">PREMIUM</span></td>
-                </tr>
-            `).join('');
-        }
-
-        initScanner();
-    </script>
-</body>
-</html>
+    tbody.innerHTML = stocks.map(s => {
+        const tagColor = s.status === 'PREMIUM' ? '#3fb950' : '#d29922';
+        const tagBg = s.status === 'PREMIUM' ? 'rgba(63, 185, 80, 0.1)' : 'rgba(210, 153, 34, 0.1)';
+        
+        return `
+            <tr>
+                <td class="ticker">${s.symbol}</td>
+                <td>Rp ${s.price.toLocaleString()}</td>
+                <td>${s.pe}</td>
+                <td>${s.pbv}</td>
+                <td>${s.roe}%</td>
+                <td>${s.der}</td>
+                <td><span style="color:${tagColor}; background:${tagBg}; padding:4px 8px; border-radius:4px; font-weight:bold; border:1px solid ${tagColor}; font-size:10px;">${s.status} (${s.score}/7)</span></td>
+            </tr>
+        `;
+    }).join('');
+}
