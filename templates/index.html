@@ -1,26 +1,97 @@
-function render() {
-    const tbody = document.getElementById('main-table');
-    const stocks = allData[currentTab] || [];
-    
-    if (stocks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-state">Tidak ada saham yang mendekati kriteria. Coba cek segmen lain.</td></tr>';
-        return;
-    }
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANMORT SOVEREIGN v7.0</title>
+    <style>
+        :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --green: #3fb950; --border: #30363d; --yellow: #d29922; }
+        body { background: var(--bg); color: #c9d1d9; font-family: sans-serif; margin: 0; padding: 0; }
+        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
+        .tab-container { display: flex; justify-content: center; gap: 10px; margin: 20px; }
+        .tab { padding: 10px 20px; background: var(--panel); border: 1px solid var(--border); color: #8b949e; cursor: pointer; border-radius: 6px; font-size: 13px; }
+        .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+        .container { max-width: 1000px; margin: auto; padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; border: 1px solid var(--border); }
+        th { background: #010409; padding: 12px; font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); text-align: center; font-size: 13px; }
+        .ticker { color: var(--accent); font-weight: bold; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin:0; font-size: 20px; letter-spacing: 2px;">VANMORT SOVEREIGN v7.0</h1>
+    </div>
 
-    tbody.innerHTML = stocks.map(s => {
-        const tagColor = s.status === 'PREMIUM' ? '#3fb950' : '#d29922';
-        const tagBg = s.status === 'PREMIUM' ? 'rgba(63, 185, 80, 0.1)' : 'rgba(210, 153, 34, 0.1)';
-        
-        return `
-            <tr>
-                <td class="ticker">${s.symbol}</td>
-                <td>Rp ${s.price.toLocaleString()}</td>
-                <td>${s.pe}</td>
-                <td>${s.pbv}</td>
-                <td>${s.roe}%</td>
-                <td>${s.der}</td>
-                <td><span style="color:${tagColor}; background:${tagBg}; padding:4px 8px; border-radius:4px; font-weight:bold; border:1px solid ${tagColor}; font-size:10px;">${s.status} (${s.score}/7)</span></td>
-            </tr>
-        `;
-    }).join('');
-}
+    <div class="tab-container">
+        <div class="tab active" onclick="setTab('big', this)">BIG CAP</div>
+        <div class="tab" onclick="setTab('mid', this)">MID CAP</div>
+        <div class="tab" onclick="setTab('small', this)">SMALL CAP</div>
+    </div>
+
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>TICKER</th>
+                    <th>PRICE</th>
+                    <th>PE</th>
+                    <th>PBV</th>
+                    <th>ROE</th>
+                    <th>DER</th>
+                    <th>SCORE</th>
+                </tr>
+            </thead>
+            <tbody id="main-table">
+                <tr><td colspan="7">Memuat data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let allData = {};
+        let currentTab = 'big';
+
+        async function init() {
+            try {
+                const res = await fetch('/api/signals');
+                allData = await res.json();
+                render();
+            } catch (e) {
+                document.getElementById('main-table').innerHTML = '<tr><td colspan="7">Error loading data.</td></tr>';
+            }
+        }
+
+        function setTab(cat, el) {
+            currentTab = cat;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            render();
+        }
+
+        function render() {
+            const tbody = document.getElementById('main-table');
+            const stocks = allData[currentTab] || [];
+            if (stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:40px">Tidak ada kandidat saham di segmen ini.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = stocks.map(s => {
+                const color = s.status === 'PREMIUM' ? '#3fb950' : '#d29922';
+                return `
+                    <tr>
+                        <td class="ticker">${s.symbol}</td>
+                        <td>Rp ${s.price.toLocaleString()}</td>
+                        <td>${s.pe}x</td>
+                        <td>${s.pbv}x</td>
+                        <td>${s.roe}%</td>
+                        <td>${s.der}</td>
+                        <td><span class="badge" style="border: 1px solid ${color}; color: ${color};">${s.status} (${s.score}/7)</span></td>
+                    </tr>`;
+            }).join('');
+        }
+        init();
+    </script>
+</body>
+</html>
