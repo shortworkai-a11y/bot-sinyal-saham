@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 def get_indonesia_market_data():
-    # Mengambil data dari endpoint report yang stabil
+    # Mengambil data fundamental lengkap
     url = "https://sectors.app/api/stock/report/" 
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -19,9 +19,9 @@ def apply_sovereign_filters(stocks):
     for s in stocks:
         try:
             price = float(s.get('last_price', 0))
-            if price <= 0: continue
+            if price <= 2: continue # Hindari saham gocap/mati
 
-            # Ambil data indikator finansial
+            # Indikator Finansial
             pe = float(s.get('pe_ttm', 999))
             pbv = float(s.get('pbv', 999))
             roe = float(s.get('roe', 0))
@@ -29,46 +29,44 @@ def apply_sovereign_filters(stocks):
             der = float(s.get('der', 999))
             ocf = float(s.get('operating_cashflow', 0))
 
-            # Hitung Skor (Kriteria Anda + 1 Poin Validitas)
+            # Hitung Skor (Kriteria Anda)
             score = 0
-            if pe < 12: score += 1
-            if pbv < 1.5: score += 1
+            if pe < 12 and pe > 0: score += 1
+            if pbv < 1.5 and pbv > 0: score += 1
             if roe > 12: score += 1
             if growth > 0: score += 1
             if der < 1: score += 1
             if ocf > 0: score += 1
-            score += 1 
 
-            # Turunkan threshold ke 3 agar dashboard pasti terisi
-            if score >= 3:
-                if score >= 6: status = "PREMIUM"
-                elif score >= 4: status = "POTENTIAL"
-                else: status = "WATCHLIST"
-                
-                stock_data = {
-                    'symbol': s.get('symbol', 'N/A'),
-                    'price': price,
-                    'pe': round(pe, 2) if pe < 900 else "N/A",
-                    'pbv': round(pbv, 2) if pbv < 900 else "N/A",
-                    'roe': round(roe, 2),
-                    'der': round(der, 2),
-                    'score': score,
-                    'status': status
-                }
+            # Tentukan Status
+            if score >= 5: status = "PREMIUM"
+            elif score >= 3: status = "POTENTIAL"
+            else: status = "WATCHLIST"
+            
+            stock_data = {
+                'symbol': s.get('symbol', 'N/A'),
+                'price': price,
+                'pe': round(pe, 2) if pe < 500 else "N/A",
+                'pbv': round(pbv, 2) if pbv < 100 else "N/A",
+                'roe': round(roe, 2),
+                'der': round(der, 2),
+                'score': score,
+                'status': status
+            }
 
-                # Segmentasi (Kriteria 1)
-                if price < 300:
-                    results['small'].append(stock_data)
-                elif price < 2000:
-                    results['mid'].append(stock_data)
-                else:
-                    results['big'].append(stock_data)
+            # Masukkan ke segmen (Small < 300, Mid < 2000, Big > 2000)
+            if price < 300:
+                results['small'].append(stock_data)
+            elif price < 2000:
+                results['mid'].append(stock_data)
+            else:
+                results['big'].append(stock_data)
         except:
             continue
             
-    # Sortir berdasarkan skor tertinggi
+    # Sortir berdasarkan skor tertinggi, ambil top 15 per segmen agar tidak kosong
     for key in results:
-        results[key] = sorted(results[key], key=lambda x: x['score'], reverse=True)
+        results[key] = sorted(results[key], key=lambda x: x['score'], reverse=True)[:15]
     return results
 
 @app.route('/')
@@ -78,7 +76,6 @@ def index():
 @app.route('/api/signals')
 def api_signals():
     raw_stocks = get_indonesia_market_data()
-    # Jika API utama kosong, kirim data dummy agar user tahu sistem jalan
     if not raw_stocks:
         return jsonify({"small": [], "mid": [], "big": []})
         
