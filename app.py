@@ -1,7 +1,7 @@
 from flask import Flask, render_template, jsonify
 import requests
 
-app = Flask(__name__, template_folder='../templates')
+app = Flask(__name__)
 
 WATCHLIST = ['BBCA', 'BBRI', 'BMRI', 'TLKM', 'ASII', 'GOTO', 'ADRO', 'BBNI']
 
@@ -15,15 +15,22 @@ def get_sectors_data():
             if response.status_code == 200:
                 raw_data = response.json()
                 latest = raw_data[-1] if isinstance(raw_data, list) else raw_data['data'][-1]
+                
                 last_price = float(latest.get('close', 0))
                 prev_price = float(latest.get('prev_close', 0))
                 change = ((last_price - prev_price) / prev_price) * 100 if prev_price > 0 else 0
+                
                 signal = "BUY" if change > 0 else "SELL"
+                if abs(change) < 0.1: signal = "NEUTRAL"
+
                 data_list.append({
-                    'ticker': ticker, 'price': f"{last_price:,.0f}",
-                    'change': round(change, 2), 'signal': signal
+                    'ticker': ticker, 
+                    'price': f"{last_price:,.0f}",
+                    'change': round(change, 2), 
+                    'signal': signal
                 })
-        except: continue
+        except: 
+            continue
     return data_list
 
 @app.route('/')
@@ -33,3 +40,7 @@ def index():
 @app.route('/api/signals')
 def api_signals():
     return jsonify(get_sectors_data())
+
+# Penting untuk Vercel
+if __name__ == '__main__':
+    app.run()
