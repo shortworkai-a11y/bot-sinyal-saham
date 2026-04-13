@@ -5,21 +5,20 @@ import os
 
 app = Flask(__name__)
 
-# Daftar saham (Watchlist) - Gunakan jumlah sedikit dulu untuk memastikan kecepatan server
-WATCHLIST = [
-    'BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK', 
-    'BBNI.JK', 'UNTR.JK', 'GOTO.JK', 'AMRT.JK', 'ADRO.JK'
-]
+# Gunakan maksimal 5-7 saham saja untuk akun FREE agar tidak kena Limit Server
+WATCHLIST = ['BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK', 'GOTO.JK']
 
 def get_signals():
     data_list = []
     
-    # Headers agar tidak diblokir oleh Yahoo Finance (Bot Protection)
     for ticker in WATCHLIST:
         try:
-            # Menggunakan yf.download karena lebih stabil di server cloud
-            # period '5d' untuk efisiensi data
-            df = yf.download(ticker, period='5d', interval='1h', progress=False, threads=False)
+            # Inisialisasi Ticker
+            stock = yf.Ticker(ticker)
+            
+            # Ambil data minimal (period 2 hari sudah cukup untuk sinyal harian)
+            # interval 1h adalah yang paling stabil di server cloud
+            df = stock.history(period='2d', interval='1h')
             
             if df.empty or len(df) < 2:
                 continue
@@ -28,7 +27,7 @@ def get_signals():
             prev_price = float(df['Close'].iloc[-2])
             change = ((last_price - prev_price) / prev_price) * 100
             
-            # Logika Sederhana: Buy jika harga di atas rata-rata 5 hari
+            # Logika PREDATOR CORE: Simple Moving Average Comparison
             avg_price = df['Close'].mean()
             if last_price > avg_price:
                 signal = "BUY"
@@ -44,20 +43,22 @@ def get_signals():
                 'signal': signal
             })
         except Exception as e:
-            print(f"Error fetching {ticker}: {e}")
+            print(f"Error pada {ticker}: {e}")
             continue
             
     return data_list
 
 @app.route('/')
 def index():
-    # Flask akan otomatis mencari folder 'templates' di direktori yang sama
     return render_template('index.html')
 
 @app.route('/api/signals')
 def api_signals():
-    signals = get_signals()
-    return jsonify(signals)
+    try:
+        signals = get_signals()
+        return jsonify(signals)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
