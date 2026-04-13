@@ -1,10 +1,62 @@
 from flask import Flask, render_template, jsonify
-import yfinance as yf
+import requests
 
 app = Flask(__name__)
 
-# Batasi watchlist menjadi 5 saham paling likuid agar fetch sangat cepat
-WATCHLIST = ['BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK']
+# Gunakan API Key jika ada, jika tidak, biarkan kosong untuk publik
+SECTORS_API_KEY = "" 
+
+def fetch_all_indonesia_stocks():
+    """Mengambil data fundamental lengkap seluruh emiten di Indonesia"""
+    url = "https://sectors.app/api/stock/report/" # Endpoint laporan lengkap
+    headers = {'Authorization': SECTORS_API_KEY} if SECTORS_API_KEY else {}
+    
+    try:
+        # Note: Pengambilan data massal mungkin butuh optimasi atau caching
+        response = requests.get(url, headers=headers, timeout=20)
+        if response.status_code != 200:
+            return []
+        return response.json()
+    except:
+        return []
+
+def filter_logic(stocks):
+    results = {'small': [], 'mid': [], 'big': []}
+    
+    for s in stocks:
+        try:
+            # 1. Ambil Data Dasar
+            price = float(s.get('last_price', 0))
+            pe = float(s.get('pe_ttm', 100))
+            pbv = float(s.get('pbv', 100))
+            roe = float(s.get('roe', 0))
+            ni_growth = float(s.get('net_income_growth_yoy', -1))
+            der = float(s.get('der', 100))
+            ocf = float(s.get('operating_cashflow', -1))
+
+            # 2. Filter Sesuai Request (Kriteria 2-7)
+            if (pe < 12 and pbv < 1.5 and roe > 12 and 
+                ni_growth > 0 and der < 1 and ocf > 0):
+                
+                stock_data = {
+                    'symbol': s.get('symbol'),
+                    'name': s.get('company_name', ''),
+                    'price': price,
+                    'pe': pe,
+                    'pbv': pbv,
+                    'roe': roe
+                }
+
+                # 3. Pengelompokan Segmen (Kriteria 1)
+                if price < 300:
+                    results['small'].append(stock_data)
+                elif price < 2000:
+                    results['mid'].append(stock_data)
+                else:
+                    results['big'].append(stock_data)
+        except:
+            continue
+    return results
 
 @app.route('/')
 def index():
@@ -12,40 +64,9 @@ def index():
 
 @app.route('/api/signals')
 def api_signals():
-    data_list = []
-    try:
-        # Gunakan string tunggal untuk download agar lebih efisien
-        tickers_string = " ".join(WATCHLIST)
-        # Ambil data period 2 hari saja (hari ini dan kemarin)
-        data = yf.download(tickers_string, period="2d", interval="1d", group_by='ticker', progress=False)
-        
-        for t in WATCHLIST:
-            try:
-                # Ambil dataframe untuk masing-masing ticker
-                df = data[t]
-                if len(df) >= 2:
-                    last_price = float(df['Close'].iloc[-1])
-                    prev_close = float(df['Close'].iloc[-2])
-                    change = ((last_price - prev_close) / prev_close) * 100
-                    
-                    # Logika Sinyal Sederhana
-                    signal = "BUY" if change > 0 else "SELL"
-                    if abs(change) < 0.1: signal = "NEUTRAL"
-                    if change > 1.5: signal = "STRONG BUY"
-                    if change < -1.5: signal = "STRONG SELL"
-
-                    data_list.append({
-                        'ticker': t.replace('.JK', ''),
-                        'price': f"{last_price:,.0f}",
-                        'change': round(change, 2),
-                        'signal': signal
-                    })
-            except:
-                continue
-    except Exception as e:
-        print(f"Error: {e}")
-        
-    return jsonify(data_list)
+    all_stocks = fetch_all_indonesia_stocks()
+    filtered = filter_logic(all_stocks)
+    return jsonify(filtered)
 
 if __name__ == '__main__':
     app.run()
