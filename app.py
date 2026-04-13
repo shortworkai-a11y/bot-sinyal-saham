@@ -1,16 +1,61 @@
 from flask import Flask, render_template, jsonify
-import yfinance as yf
-import pandas as pd
+import requests
 
 app = Flask(__name__)
 
-# List saham utama Indonesia (Bisa ditambah sesuai kebutuhan)
-# Untuk menyisir 800 saham sekaligus di Vercel Free, kita gunakan list top 100 agar tidak timeout
-WATCHLIST = [
-    'BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK', 'GOTO.JK', 'ADRO.JK', 'BBNI.JK',
-    'UNVR.JK', 'ICBP.JK', 'AMRT.JK', 'PGAS.JK', 'PTBA.JK', 'ITMG.JK', 'INKP.JK', 'CPIN.JK',
-    'KLBF.JK', 'SMGR.JK', 'JSMR.JK', 'TOWR.JK', 'BRIS.JK', 'BSDE.JK', 'PWON.JK', 'AKRA.JK'
-]
+def get_indonesia_market_data():
+    # Mengambil data fundamental lengkap dari public source sectors.app
+    # API ini jauh lebih cepat daripada yfinance untuk scanning massal
+    url = "https://sectors.app/api/stock/report/" 
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code == 200:
+            return response.json()
+        return []
+    except:
+        return []
+
+def apply_sovereign_filters(stocks):
+    results = {'small': [], 'mid': [], 'big': []}
+    
+    for s in stocks:
+        try:
+            # Mengambil data indikator dari JSON
+            price = float(s.get('last_price', 0))
+            # Kriteria 2-7
+            pe = float(s.get('pe_ttm', 999))
+            pbv = float(s.get('pbv', 999))
+            roe = float(s.get('roe', 0))
+            growth = float(s.get('net_income_growth_yoy', 0))
+            der = float(s.get('der', 999))
+            ocf = float(s.get('operating_cashflow', 0))
+
+            # LOGIKA FILTER KETAT
+            if (pe < 12 and pbv < 1.5 and roe > 12 and 
+                growth > 0 and der < 1 and ocf > 0):
+                
+                stock_data = {
+                    'symbol': s.get('symbol'),
+                    'name': s.get('company_name', ''),
+                    'price': price,
+                    'pe': round(pe, 2),
+                    'pbv': round(pbv, 2),
+                    'roe': round(roe, 2),
+                    'der': round(der, 2)
+                }
+
+                # 1. SEGMENTASI HARGA (Kriteria 1)
+                if price < 300:
+                    results['small'].append(stock_data)
+                elif price < 2000:
+                    results['mid'].append(stock_data)
+                else:
+                    results['big'].append(stock_data)
+        except:
+            continue
+    return results
 
 @app.route('/')
 def index():
@@ -18,55 +63,9 @@ def index():
 
 @app.route('/api/signals')
 def api_signals():
-    results = {'small': [], 'mid': [], 'big': []}
-    
-    for t in WATCHLIST:
-        try:
-            stock = yf.Ticker(t)
-            info = stock.info
-            
-            # Ambil data indikator
-            price = info.get('currentPrice') or info.get('regularMarketPrice') or 0
-            pe = info.get('trailingPE') or 0
-            pbv = info.get('priceToBook') or 0
-            roe = (info.get('returnOnEquity') or 0) * 100
-            der = (info.get('debtToEquity') or 0) / 100
-            growth = info.get('revenueGrowth') or 0
-            ocf = info.get('operatingCashflow') or 0
-            
-            # --- FILTER KRITERIA ---
-            # Kita buat sedikit longgar agar data muncul, lalu Anda bisa ketatkan lagi
-            if price > 0:
-                # Validasi Kriteria 2-7
-                is_premium = (
-                    (pe < 12 if pe > 0 else True) and 
-                    (pbv < 1.5 if pbv > 0 else True) and 
-                    (roe > 12) and 
-                    (der < 1 if der > 0 else True) and
-                    (ocf > 0)
-                )
-
-                if is_premium:
-                    data = {
-                        'symbol': t.replace('.JK', ''),
-                        'price': price,
-                        'pe': round(pe, 2),
-                        'pbv': round(pbv, 2),
-                        'roe': round(roe, 2)
-                    }
-                    
-                    # Segmen Harga (Kriteria 1)
-                    if price < 300:
-                        results['small'].append(data)
-                    elif price < 2000:
-                        results['mid'].append(data)
-                    else:
-                        results['big'].append(data)
-        except Exception as e:
-            print(f"Error {t}: {e}")
-            continue
-            
-    return jsonify(results)
+    raw_stocks = get_indonesia_market_data()
+    filtered_data = apply_sovereign_filters(raw_stocks)
+    return jsonify(filtered_data)
 
 if __name__ == '__main__':
     app.run()
