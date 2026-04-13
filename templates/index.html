@@ -3,74 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO-QUANT v16.4 | SECTORS CORE</title>
+    <title>PREDATOR v16.6 | LIVE DASHBOARD</title>
     <style>
-        body { background-color: #050505; color: #00ff00; font-family: 'Consolas', 'Courier New', monospace; margin: 0; padding: 20px; }
-        .wrapper { max-width: 900px; margin: 0 auto; border: 1px solid #00ff00; padding: 20px; box-shadow: 0 0 15px #003300; }
-        .header { text-align: center; border-bottom: 2px solid #00ff00; padding-bottom: 10px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background-color: #0a0a0a; }
-        th, td { border: 1px solid #1a1a1a; padding: 12px; text-align: center; }
-        th { background-color: #00ff00; color: #000; font-size: 13px; text-transform: uppercase; }
-        .strong-buy { color: #000; background-color: #00ff00; font-weight: bold; }
-        .buy { color: #00ff00; font-weight: bold; }
-        .strong-sell { color: #fff; background-color: #ff0000; font-weight: bold; }
-        .sell { color: #ff3333; }
-        .neutral { color: #ffff00; }
-        .footer { font-size: 10px; color: #444; margin-top: 15px; text-align: center; }
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        h1 { text-align: center; color: #58a6ff; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #21262d; }
+        th { color: #8b949e; font-size: 12px; text-transform: uppercase; }
+        .strong-buy { color: #3fb950; font-weight: bold; background: rgba(63, 185, 80, 0.1); }
+        .buy { color: #3fb950; }
+        .strong-sell { color: #f85149; font-weight: bold; background: rgba(248, 81, 73, 0.1); }
+        .sell { color: #f85149; }
+        .footer { text-align: center; font-size: 11px; color: #484f58; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="header">
-            <h1 style="margin: 0; letter-spacing: 3px;">PREDATOR v16.4</h1>
-            <p style="margin: 5px 0 0; font-size: 12px; color: #888;">SOURCE: SECTORS.APP API | SURABAYA NODE</p>
-        </div>
-
+    <div class="container">
+        <h1>PREDATOR ENGINE v16.6</h1>
         <table>
             <thead>
                 <tr>
-                    <th>STOCK</th>
-                    <th>LAST PRICE</th>
-                    <th>CHG %</th>
-                    <th>PREDATOR SIGNAL</th>
+                    <th>TICKER</th>
+                    <th>PRICE (IDR)</th>
+                    <th>CHANGE (%)</th>
+                    <th>SIGNAL</th>
                 </tr>
             </thead>
-            <tbody id="signal-table">
-                <tr><td colspan="4" style="color: #888;">INITIALIZING SECTORS DATA STREAM...</td></tr>
+            <tbody id="table-body">
+                <tr><td colspan="4">SYNCING DATA FROM SECTORS.APP...</td></tr>
             </tbody>
         </table>
-        
         <div class="footer">
-            SYSTEM STATUS: <span style="color: #00ff00;">ONLINE</span> | 
-            SYNC: <span id="clock">-</span>
+            LAST SYNC: <span id="clock">-</span> | STATUS: <span style="color:#3fb950">LIVE</span>
         </div>
     </div>
 
     <script>
-        async function fetchMarketData() {
+        async function updateDashboard() {
+            const tbody = document.getElementById('table-body');
             try {
                 const response = await fetch('/api/signals');
                 const data = await response.json();
-                const table = document.getElementById('signal-table');
-                table.innerHTML = '';
                 
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">Data tidak tersedia saat ini.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
                 data.forEach(item => {
                     const signalClass = item.signal.toLowerCase().replace(' ', '-');
-                    table.innerHTML += `<tr>
-                        <td><strong>${item.ticker}</strong></td>
-                        <td>Rp ${item.price}</td>
-                        <td style="color:${item.change >= 0 ? '#00ff00' : '#ff3333'}">${item.change}%</td>
-                        <td class="${signalClass}">${item.signal}</td>
-                    </tr>`;
+                    const changeColor = item.change >= 0 ? '#3fb950' : '#f85149';
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${item.ticker}</strong></td>
+                            <td>Rp ${item.price}</td>
+                            <td style="color: ${changeColor}">${item.change}%</td>
+                            <td class="${signalClass}">${item.signal}</td>
+                        </tr>`;
                 });
                 document.getElementById('clock').innerText = new Date().toLocaleTimeString();
             } catch (error) {
-                console.error("Sync Error");
+                console.error("Error:", error);
+                tbody.innerHTML = '<tr><td colspan="4" style="color:#f85149">Server sedang sibuk. Me-refresh...</td></tr>';
             }
         }
-        
-        fetchMarketData();
-        setInterval(fetchMarketData, 60000); // Update setiap 1 menit
+
+        updateDashboard();
+        setInterval(updateDashboard, 60000);
     </script>
 </body>
 </html>
