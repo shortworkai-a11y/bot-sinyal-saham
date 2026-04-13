@@ -5,69 +5,69 @@ from flask import Flask, jsonify, render_template
 
 app = Flask(__name__)
 
-# GANTI LINK DI BAWAH INI dengan link yang baru saja Anda dapatkan
-SHEET_CSV_URL = "ISI_DENGAN_LINK_CSV_ANDA_DI_SINI"
+# PASTE LINK CSV HASIL PUBLISH TO WEB DI SINI
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQye0iX3Sh2qkrb8WIfk_IEyE6DKITI_r8y6yOJN0lmT6ggyA1-IgFzmL7dJ2aedNjgm-n2wmm34Egc/pub?output=csv"
 
-def fetch_stock_data():
+def fetch_and_clean_data():
     try:
-        # Menarik data dari Google Sheets
+        # 1. Ambil data dari Google Sheets
         response = requests.get(SHEET_CSV_URL)
         response.raise_for_status()
         
-        # Membaca CSV menggunakan Pandas
-        csv_data = StringIO(response.text)
-        df = pd.read_csv(csv_data)
+        # 2. Baca CSV ke Pandas DataFrame
+        df = pd.read_csv(StringIO(response.text))
         
-        # Membersihkan nama kolom (menghapus spasi jika ada)
+        # Bersihkan spasi di nama kolom
         df.columns = df.columns.str.strip()
         
-        results = {'small': [], 'mid': [], 'big': []}
+        final_data = []
         
-        # Looping data saham
+        # 3. Looping data 800+ saham
         for _, row in df.iterrows():
             try:
-                # Ambil data dari kolom (sesuaikan nama kolom dengan di Sheets)
-                symbol = str(row['Ticker'])
-                price = float(row['Price'])
-                pe = float(row['PE']) if 'PE' in df.columns else 0
-                pbv = float(row['PBV']) if 'PBV' in df.columns else 0
+                # Ambil data dasar (Gunakan nilai default 0 jika error/kosong)
+                ticker = str(row.get('Ticker', 'N/A'))
+                price = float(row.get('Price', 0))
+                change_pct = float(row.get('Change%', 0)) * 100 # Konversi ke persen
+                pe = float(row.get('PE', 0))
+                market_cap = float(row.get('MarketCap', 0))
+                vol = float(row.get('Volume', 0))
+                avg_vol = float(row.get('Avgvolume', 0))
                 
-                # Logika Skor Sederhana (Contoh: Berdasarkan PE)
+                # LOGIKA SINYAL SOVEREIGN (Contoh sederhana)
+                # Sinyal BUY jika Volume > AvgVolume dan PE < 15
                 score = 0
+                if vol > avg_vol: score += 2
                 if pe > 0 and pe < 15: score += 3
-                if pbv > 0 and pbv < 1.5: score += 2
+                if change_pct > 0: score += 1
                 
+                status = "STRONG BUY" if score >= 5 else "WATCHLIST" if score >= 3 else "NEUTRAL"
+
                 stock_info = {
-                    'symbol': symbol,
+                    'ticker': ticker,
                     'price': f"{price:,.0f}",
-                    'pe': pe,
-                    'pbv': pbv,
+                    'change': f"{change_pct:+.2f}%",
+                    'pe': f"{pe:.1f}",
+                    'mcap': f"{market_cap:,.0f}",
+                    'vol_status': "High" if vol > avg_vol else "Normal",
                     'score': score,
-                    'status': "SOVEREIGN" if score >= 4 else "NEUTRAL"
+                    'status': status
                 }
-                
-                # Klasifikasi berdasarkan harga (Contoh saja)
-                if price < 500:
-                    results['small'].append(stock_info)
-                elif price < 5000:
-                    results['mid'].append(stock_info)
-                else:
-                    results['big'].append(stock_info)
-            except Exception as e:
-                print(f"Error baris {symbol}: {e}")
+                final_data.append(stock_info)
+            except:
                 continue
                 
-        return results
+        return final_data
     except Exception as e:
-        print(f"Error Global: {e}")
+        print(f"Error Fetching: {e}")
         return None
 
 @app.route('/api/signals')
 def get_signals():
-    data = fetch_stock_data()
+    data = fetch_and_clean_data()
     if data:
         return jsonify(data)
-    return jsonify({"error": "Gagal mengambil data dari Google Sheets"}), 500
+    return jsonify({"error": "Data tidak ditemukan"}), 500
 
 @app.route('/')
 def index():
