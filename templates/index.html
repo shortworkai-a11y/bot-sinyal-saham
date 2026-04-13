@@ -1,76 +1,31 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO-QUANT v16.7 | YAHOO ENGINE</title>
-    <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', sans-serif; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
-        h1 { text-align: center; color: #58a6ff; font-size: 24px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #21262d; }
-        th { color: #8b949e; font-size: 12px; text-transform: uppercase; }
-        .strong-buy { color: #3fb950; font-weight: bold; background: rgba(63, 185, 80, 0.1); }
-        .buy { color: #3fb950; }
-        .strong-sell { color: #f85149; font-weight: bold; background: rgba(248, 81, 73, 0.1); }
-        .sell { color: #f85149; }
-        .neutral { color: #ffff00; }
-        .footer { text-align: center; font-size: 11px; color: #484f58; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>PREDATOR ENGINE v16.7</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>STOCK</th>
-                    <th>PRICE (IDR)</th>
-                    <th>CHANGE (%)</th>
-                    <th>SIGNAL</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                <tr><td colspan="4">CONNECTING TO YAHOO FINANCE...</td></tr>
-            </tbody>
-        </table>
-        <div class="footer">
-            STATUS: <span style="color:#3fb950">LIVE DATA</span> | SYNC: <span id="clock">-</span>
-        </div>
-    </div>
-
-    <script>
-        async function fetchSignals() {
-            try {
-                const response = await fetch('/api/signals');
-                const data = await response.json();
-                const tbody = document.getElementById('table-body');
-                
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4">Menunggu data market...</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                data.forEach(item => {
-                    const signalClass = item.signal.toLowerCase().replace(' ', '-');
-                    const color = item.change >= 0 ? '#3fb950' : '#f85149';
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${item.ticker}</strong></td>
-                            <td>Rp ${item.price}</td>
-                            <td style="color: ${color}">${item.change}%</td>
-                            <td class="${signalClass}">${item.signal}</td>
-                        </tr>`;
-                });
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-            } catch (error) {
-                console.error("Error:", error);
-            }
+async function updateSignals() {
+    const tbody = document.getElementById('table-body');
+    try {
+        const response = await fetch('/api/signals');
+        const data = await response.json();
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">Menunggu respon server Yahoo...</td></tr>';
+            return;
         }
-        fetchSignals();
-        setInterval(fetchSignals, 60000);
-    </script>
-</body>
-</html>
+
+        tbody.innerHTML = '';
+        data.forEach(item => {
+            const signalClass = item.signal.toLowerCase().replace(' ', '-');
+            const color = item.change >= 0 ? '#3fb950' : '#f85149';
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${item.ticker}</strong></td>
+                    <td>Rp ${item.price}</td>
+                    <td style="color: ${color}">${item.change}%</td>
+                    <td class="${signalClass}">${item.signal}</td>
+                </tr>`;
+        });
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="4">Koneksi Terputus. Refresh Halaman.</td></tr>';
+    }
+}
+
+updateSignals();
+setInterval(updateSignals, 60000);
