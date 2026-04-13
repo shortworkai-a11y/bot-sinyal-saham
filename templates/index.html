@@ -3,100 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VANMORT SOVEREIGN | FULL DATA</title>
+    <title>VanMort v7.0 | Sovereign Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: #010409; }
-        .tabs { display: flex; justify-content: center; background: var(--panel); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-        .tab { padding: 15px 25px; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: bold; border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(88, 166, 255, 0.05); }
-        .content { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
-        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
-        th { padding: 12px; background: #010409; color: #8b949e; position: sticky; top: 50px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid var(--border); text-align: center; }
-        .ticker { color: var(--accent); font-weight: bold; text-align: left; }
-        .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        body { font-family: 'JetBrains Mono', monospace; background-color: #0a0a0a; color: #e5e5e5; }
+        .glass-card { background: rgba(23, 23, 23, 0.8); backdrop-filter: blur(10px); border: 1px solid #333; }
+        .glow-green { text-shadow: 0 0 10px #22c55e; color: #22c55e; }
+        .glow-red { text-shadow: 0 0 10px #ef4444; color: #ef4444; }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1 style="margin:0; font-size: 20px; letter-spacing: 2px;">VANMORT SOVEREIGN v7.0</h1>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto mb-8 flex justify-between items-end border-b border-gray-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tighter glow-green">VANMORT V7.0</h1>
+            <p class="text-xs text-gray-500">SOVEREIGN EDITION • LIVE MARKET SCANNER</p>
+        </div>
+        <div class="text-right">
+            <p id="time" class="text-sm text-gray-400"></p>
+            <span class="inline-flex items-center rounded-full bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                System Active
+            </span>
+        </div>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('big', this)">BIG CAP (>2000)</div>
-        <div class="tab" onclick="switchTab('mid', this)">MID CAP (<2000)</div>
-        <div class="tab" onclick="switchTab('small', this)">SMALL CAP (<300)</div>
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="glass-card p-4 rounded-lg">
+            <p class="text-gray-500 text-xs uppercase">Scanner Status</p>
+            <p class="text-lg font-bold">800+ Tickers Online</p>
+        </div>
+        <div class="glass-card p-4 rounded-lg">
+            <p class="text-gray-500 text-xs uppercase">Database Source</p>
+            <p class="text-lg font-bold">Google Sheets API</p>
+        </div>
+        <div class="glass-card p-4 rounded-lg border-green-900/50">
+            <p class="text-gray-500 text-xs uppercase">Algorithm</p>
+            <p class="text-lg font-bold">Smart Volume Factor</p>
+        </div>
     </div>
 
-    <div class="content">
-        <table>
-            <thead>
-                <tr>
-                    <th style="text-align:left">Emiten</th>
-                    <th>Harga</th>
-                    <th>PE</th>
-                    <th>PBV</th>
-                    <th>ROE %</th>
-                    <th>DER</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                <tr><td colspan="7" style="padding:100px">Mengunduh Data Bursa Indonesia...</td></tr>
-            </tbody>
-        </table>
+    <div class="max-w-7xl mx-auto overflow-hidden rounded-lg border border-gray-800 glass-card">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-800 text-sm">
+                <thead class="bg-black/50">
+                    <tr>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-400 uppercase tracking-wider">Ticker</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-400 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-400 uppercase tracking-wider">Change</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-400 uppercase tracking-wider">P/E</th>
+                        <th class="px-6 py-4 text-left font-semibold text-gray-400 uppercase tracking-wider">Volume</th>
+                        <th class="px-6 py-4 text-center font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-table" class="divide-y divide-gray-800">
+                    <tr>
+                        <td colspan="6" class="px-6 py-10 text-center text-gray-500">Loading Market Data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        let dataStore = {};
-        let activeCategory = 'big';
-
-        async function fetchData() {
+        async function loadSignals() {
             try {
-                const res = await fetch('/api/signals');
-                dataStore = await res.json();
-                render();
-            } catch (e) {
-                document.getElementById('table-body').innerHTML = '<tr><td colspan="7">Error: Gagal memuat data.</td></tr>';
-            }
-        }
-
-        function switchTab(cat, el) {
-            activeCategory = cat;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-            render();
-        }
-
-        function render() {
-            const tbody = document.getElementById('table-body');
-            const stocks = dataStore[activeCategory] || [];
-            
-            if (stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="padding:50px">Data Kosong.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = stocks.map(s => {
-                let badgeColor = '#8b949e';
-                if (s.status === 'PREMIUM') badgeColor = '#3fb950';
-                if (s.status === 'POTENTIAL') badgeColor = '#d29922';
+                const response = await fetch('/api/signals');
+                const stocks = await response.json();
                 
-                return `
-                    <tr>
-                        <td class="ticker">${s.symbol} <br><small style="color:#484f58; font-weight:normal">${s.name}</small></td>
-                        <td>Rp ${s.price.toLocaleString()}</td>
-                        <td>${s.pe}</td>
-                        <td>${s.pbv}</td>
-                        <td>${s.roe}%</td>
-                        <td>${s.der}</td>
-                        <td><span class="badge" style="border:1px solid ${badgeColor}; color:${badgeColor}; background:${badgeColor}1A">${s.status} (${s.score}/6)</span></td>
-                    </tr>`;
-            }).join('');
+                const tableBody = document.getElementById('stock-table');
+                tableBody.innerHTML = '';
+
+                stocks.forEach(s => {
+                    const isPositive = s.change.includes('+');
+                    const row = `
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="px-6 py-4 font-bold text-white">${s.ticker}</td>
+                            <td class="px-6 py-4 font-bold">${s.price}</td>
+                            <td class="px-6 py-4 ${isPositive ? 'text-green-500' : 'text-red-500'} font-bold">
+                                ${s.change}
+                            </td>
+                            <td class="px-6 py-4 text-gray-300">${s.pe}</td>
+                            <td class="px-6 py-4 text-xs font-bold ${s.vol_status === 'High' ? 'text-orange-400' : 'text-gray-500'} uppercase">
+                                ${s.vol_status}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-3 py-1 rounded-full text-[10px] font-bold border ${s.status === 'STRONG BUY' ? 'border-green-500 glow-green' : 'border-gray-700 text-gray-500'}">
+                                    ${s.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error("Gagal mengambil data:", error);
+            }
         }
-        fetchData();
+
+        // Update Waktu
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').innerText = now.toLocaleString('id-ID');
+        }
+
+        setInterval(updateTime, 1000);
+        setInterval(loadSignals, 30000); // Refresh data tiap 30 detik
+        loadSignals();
     </script>
 </body>
 </html>
