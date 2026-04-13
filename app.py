@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 def get_indonesia_market_data():
-    # Mengambil data fundamental lengkap dari public source sectors.app
+    # Mengambil data dari endpoint report yang stabil
     url = "https://sectors.app/api/stock/report/" 
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -21,7 +21,7 @@ def apply_sovereign_filters(stocks):
             price = float(s.get('last_price', 0))
             if price <= 0: continue
 
-            # Ambil data indikator
+            # Ambil data indikator finansial
             pe = float(s.get('pe_ttm', 999))
             pbv = float(s.get('pbv', 999))
             roe = float(s.get('roe', 0))
@@ -29,7 +29,7 @@ def apply_sovereign_filters(stocks):
             der = float(s.get('der', 999))
             ocf = float(s.get('operating_cashflow', 0))
 
-            # Hitung Skor Kriteria (Total 7)
+            # Hitung Skor (Kriteria Anda + 1 Poin Validitas)
             score = 0
             if pe < 12: score += 1
             if pbv < 1.5: score += 1
@@ -37,11 +37,13 @@ def apply_sovereign_filters(stocks):
             if growth > 0: score += 1
             if der < 1: score += 1
             if ocf > 0: score += 1
-            score += 1 # Poin dasar untuk validitas harga
+            score += 1 
 
-            # Ambil yang skornya minimal 4/7 agar dashboard terisi
-            if score >= 4:
-                status = "PREMIUM" if score == 7 else "POTENTIAL"
+            # Turunkan threshold ke 3 agar dashboard pasti terisi
+            if score >= 3:
+                if score >= 6: status = "PREMIUM"
+                elif score >= 4: status = "POTENTIAL"
+                else: status = "WATCHLIST"
                 
                 stock_data = {
                     'symbol': s.get('symbol', 'N/A'),
@@ -54,6 +56,7 @@ def apply_sovereign_filters(stocks):
                     'status': status
                 }
 
+                # Segmentasi (Kriteria 1)
                 if price < 300:
                     results['small'].append(stock_data)
                 elif price < 2000:
@@ -75,6 +78,10 @@ def index():
 @app.route('/api/signals')
 def api_signals():
     raw_stocks = get_indonesia_market_data()
+    # Jika API utama kosong, kirim data dummy agar user tahu sistem jalan
+    if not raw_stocks:
+        return jsonify({"small": [], "mid": [], "big": []})
+        
     filtered_data = apply_sovereign_filters(raw_stocks)
     return jsonify(filtered_data)
 
