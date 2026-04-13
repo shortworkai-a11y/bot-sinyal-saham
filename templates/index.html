@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOVEREIGN v7.0 | PREMIUM SCANNER</title>
+    <title>VANMORT SOVEREIGN | FULL DATA</title>
     <style>
         :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --border: #30363d; }
         body { background: var(--bg); color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; }
-        .header { padding: 25px; border-bottom: 1px solid var(--border); text-align: center; background: #010409; }
-        .tabs { display: flex; justify-content: center; background: var(--panel); border-bottom: 1px solid var(--border); }
-        .tab { padding: 15px 30px; cursor: pointer; color: #8b949e; font-weight: bold; border-bottom: 2px solid transparent; }
+        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: #010409; }
+        .tabs { display: flex; justify-content: center; background: var(--panel); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+        .tab { padding: 15px 25px; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: bold; border-bottom: 2px solid transparent; }
         .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(88, 166, 255, 0.05); }
-        .content { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
-        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
-        th { padding: 15px; font-size: 11px; color: #8b949e; border-bottom: 1px solid var(--border); text-align: center; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); text-align: center; font-size: 14px; }
-        .badge { padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .content { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+        th { padding: 12px; background: #010409; color: #8b949e; position: sticky; top: 50px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 12px; border-bottom: 1px solid var(--border); text-align: center; }
+        .ticker { color: var(--accent); font-weight: bold; text-align: left; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 style="margin:0; font-size: 22px; letter-spacing: 2px;">VANMORT SOVEREIGN v7.0</h1>
-        <p style="font-size: 11px; color: #8b949e; margin-top:5px;">REAL-TIME VALUE INVESTING SCANNER</p>
+        <h1 style="margin:0; font-size: 20px; letter-spacing: 2px;">VANMORT SOVEREIGN v7.0</h1>
     </div>
 
     <div class="tabs">
@@ -34,17 +34,17 @@
         <table>
             <thead>
                 <tr>
-                    <th>TICKER</th>
-                    <th>PRICE</th>
+                    <th style="text-align:left">Emiten</th>
+                    <th>Harga</th>
                     <th>PE</th>
                     <th>PBV</th>
-                    <th>ROE</th>
+                    <th>ROE %</th>
                     <th>DER</th>
-                    <th>STRENGTH</th>
+                    <th>Score</th>
                 </tr>
             </thead>
             <tbody id="table-body">
-                <tr><td colspan="7" style="padding:100px">Menganalisa Fundamental Emiten...</td></tr>
+                <tr><td colspan="7" style="padding:100px">Mengunduh Data Bursa Indonesia...</td></tr>
             </tbody>
         </table>
     </div>
@@ -59,7 +59,7 @@
                 dataStore = await res.json();
                 render();
             } catch (e) {
-                document.getElementById('table-body').innerHTML = '<tr><td colspan="7">Gagal memuat data API.</td></tr>';
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="7">Error: Gagal memuat data.</td></tr>';
             }
         }
 
@@ -75,24 +75,24 @@
             const stocks = dataStore[activeCategory] || [];
             
             if (stocks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="padding:100px">Sistem tidak menemukan emiten yang layak di segmen ini.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:50px">Data Kosong.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = stocks.map(s => {
-                let color = '#8b949e'; // Watchlist
-                if (s.status === 'PREMIUM') color = '#3fb950'; // Green
-                if (s.status === 'POTENTIAL') color = '#d29922'; // Orange
+                let badgeColor = '#8b949e';
+                if (s.status === 'PREMIUM') badgeColor = '#3fb950';
+                if (s.status === 'POTENTIAL') badgeColor = '#d29922';
                 
                 return `
                     <tr>
-                        <td style="color:#58a6ff; font-weight:bold">${s.symbol}</td>
+                        <td class="ticker">${s.symbol} <br><small style="color:#484f58; font-weight:normal">${s.name}</small></td>
                         <td>Rp ${s.price.toLocaleString()}</td>
-                        <td>${s.pe}x</td>
-                        <td>${s.pbv}x</td>
+                        <td>${s.pe}</td>
+                        <td>${s.pbv}</td>
                         <td>${s.roe}%</td>
                         <td>${s.der}</td>
-                        <td><span class="badge" style="border:1px solid ${color}; color:${color}; background: ${color}1A">${s.status} (${s.score}/6)</span></td>
+                        <td><span class="badge" style="border:1px solid ${badgeColor}; color:${badgeColor}; background:${badgeColor}1A">${s.status} (${s.score}/6)</span></td>
                     </tr>`;
             }).join('');
         }
