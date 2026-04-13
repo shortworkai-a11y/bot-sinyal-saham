@@ -1,66 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRO-QUANT v16 | PREDATOR CORE</title>
     <style>
-        body { background-color: #0d0d0d; color: #00ff00; font-family: 'Courier New', monospace; text-align: center; }
-        table { width: 80%; margin: 20px auto; border-collapse: collapse; border: 1px solid #00ff00; }
-        th, td { padding: 12px; border: 1px solid #004400; text-align: center; }
-        th { background-color: #002200; }
-        .buy { color: #00ff00; font-weight: bold; }
-        .sell { color: #ff0000; font-weight: bold; }
-        .header { margin-top: 30px; border-bottom: 2px solid #00ff00; display: inline-block; padding-bottom: 10px; }
+        body { 
+            background-color: #0d0d0d; 
+            color: #00ff00; 
+            font-family: 'Courier New', monospace; 
+            margin: 0;
+            padding: 20px;
+        }
+        .header { 
+            text-align: center; 
+            border-bottom: 2px solid #00ff00; 
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+        table { 
+            width: 100%; 
+            max-width: 900px;
+            margin: 0 auto; 
+            border-collapse: collapse; 
+            background-color: #1a1a1a;
+        }
+        th, td { 
+            padding: 15px; 
+            border: 1px solid #004400; 
+            text-align: center; 
+        }
+        th { background-color: #002200; color: #00ff00; }
+        .buy { color: #00ff00; font-weight: bold; background-color: rgba(0, 255, 0, 0.1); }
+        .sell { color: #ff0000; font-weight: bold; background-color: rgba(255, 0, 0, 0.1); }
+        .loading { font-style: italic; color: #888; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>PRO-QUANT v16 | PREDATOR CORE</h1>
-        <p>REAL-TIME MARKET INTELLIGENCE SYSTEM</p>
+        <p>SYSTEM STATUS: <span id="status">ACTIVE</span> | TIME: <span id="current-time"></span></p>
     </div>
 
     <table>
         <thead>
             <tr>
-                <th>TICKER</th>
-                <th>PRICE</th>
+                <th>EMITEN</th>
+                <th>LAST PRICE</th>
                 <th>CHANGE (%)</th>
-                <th>SIGNAL</th>
+                <th>PREDATOR SIGNAL</th>
             </tr>
         </thead>
         <tbody id="signal-table">
-            <tr><td colspan="4">LOADING SYSTEM DATA...</td></tr>
+            <tr><td colspan="4" class="loading">SINKRONISASI DATA PASAR...</td></tr>
         </tbody>
     </table>
 
     <script>
-        async function updateSignals() {
+        async function fetchSignals() {
             try {
-                // Mengambil data dari endpoint API internal
                 const response = await fetch('/api/signals');
                 const data = await response.json();
                 
                 const tableBody = document.getElementById('signal-table');
                 tableBody.innerHTML = '';
 
+                if (data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="4">Koneksi Yahoo Finance Terputus (Limit Server)</td></tr>';
+                    return;
+                }
+
                 data.forEach(item => {
+                    const signalClass = item.signal.toLowerCase();
                     const row = `<tr>
-                        <td>${item.ticker}</td>
-                        <td>${item.price}</td>
+                        <td><strong>${item.ticker}</strong></td>
+                        <td>Rp ${item.price}</td>
                         <td style="color: ${item.change >= 0 ? '#00ff00' : '#ff0000'}">${item.change}%</td>
-                        <td class="${item.signal.toLowerCase()}">${item.signal}</td>
+                        <td class="${signalClass}">${item.signal}</td>
                     </tr>`;
                     tableBody.innerHTML += row;
                 });
+                
+                document.getElementById('current-time').innerText = new Date().toLocaleTimeString();
             } catch (error) {
-                console.error('Error fetching signals:', error);
+                console.error('Error:', error);
             }
         }
 
-        // Jalankan saat load dan refresh tiap 60 detik
-        updateSignals();
-        setInterval(updateSignals, 60000);
+        // Jalankan saat halaman dibuka
+        fetchSignals();
+        // Refresh otomatis setiap 60 detik
+        setInterval(fetchSignals, 60000);
     </script>
 </body>
 </html>
