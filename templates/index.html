@@ -2,57 +2,75 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>PRO-QUANT v16 | PREDATOR CORE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO-QUANT v16.4 | SECTORS CORE</title>
     <style>
-        body { background-color: #050505; color: #00ff00; font-family: 'Courier New', monospace; padding: 20px; }
-        .box { max-width: 700px; margin: auto; border: 1px solid #00ff00; padding: 20px; box-shadow: 0 0 15px #003300; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #111; padding: 15px; text-align: center; font-size: 14px; }
-        th { background-color: #00ff00; color: #000; }
+        body { background-color: #050505; color: #00ff00; font-family: 'Consolas', 'Courier New', monospace; margin: 0; padding: 20px; }
+        .wrapper { max-width: 900px; margin: 0 auto; border: 1px solid #00ff00; padding: 20px; box-shadow: 0 0 15px #003300; }
+        .header { text-align: center; border-bottom: 2px solid #00ff00; padding-bottom: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background-color: #0a0a0a; }
+        th, td { border: 1px solid #1a1a1a; padding: 12px; text-align: center; }
+        th { background-color: #00ff00; color: #000; font-size: 13px; text-transform: uppercase; }
+        .strong-buy { color: #000; background-color: #00ff00; font-weight: bold; }
         .buy { color: #00ff00; font-weight: bold; }
-        .sell { color: #ff0000; font-weight: bold; }
-        .reconnecting { color: #ffff00; font-style: italic; }
+        .strong-sell { color: #fff; background-color: #ff0000; font-weight: bold; }
+        .sell { color: #ff3333; }
+        .neutral { color: #ffff00; }
+        .footer { font-size: 10px; color: #444; margin-top: 15px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2 style="text-align: center; letter-spacing: 2px;">PREDATOR v16.2 BYPASS</h2>
+    <div class="wrapper">
+        <div class="header">
+            <h1 style="margin: 0; letter-spacing: 3px;">PREDATOR v16.4</h1>
+            <p style="margin: 5px 0 0; font-size: 12px; color: #888;">SOURCE: SECTORS.APP API | SURABAYA NODE</p>
+        </div>
+
         <table>
             <thead>
                 <tr>
                     <th>STOCK</th>
-                    <th>PRICE</th>
+                    <th>LAST PRICE</th>
                     <th>CHG %</th>
-                    <th>SIGNAL</th>
+                    <th>PREDATOR SIGNAL</th>
                 </tr>
             </thead>
-            <tbody id="data-table">
-                <tr><td colspan="4">INITIALIZING SYSTEM...</td></tr>
+            <tbody id="signal-table">
+                <tr><td colspan="4" style="color: #888;">INITIALIZING SECTORS DATA STREAM...</td></tr>
             </tbody>
         </table>
-        <p style="font-size: 10px; color: #444; margin-top: 15px;">Note: Jika status RECONNECTING, server sedang bypass limit Yahoo. Tunggu 60 detik.</p>
+        
+        <div class="footer">
+            SYSTEM STATUS: <span style="color: #00ff00;">ONLINE</span> | 
+            SYNC: <span id="clock">-</span>
+        </div>
     </div>
 
     <script>
-        async function fetchMarket() {
+        async function fetchMarketData() {
             try {
                 const response = await fetch('/api/signals');
                 const data = await response.json();
-                const table = document.getElementById('data-table');
+                const table = document.getElementById('signal-table');
                 table.innerHTML = '';
                 
                 data.forEach(item => {
+                    const signalClass = item.signal.toLowerCase().replace(' ', '-');
                     table.innerHTML += `<tr>
-                        <td>${item.ticker}</td>
-                        <td>${item.price}</td>
-                        <td style="color:${item.change >= 0 ? '#0ff' : '#f00'}">${item.change}%</td>
-                        <td class="${item.signal.toLowerCase()}">${item.signal}</td>
+                        <td><strong>${item.ticker}</strong></td>
+                        <td>Rp ${item.price}</td>
+                        <td style="color:${item.change >= 0 ? '#00ff00' : '#ff3333'}">${item.change}%</td>
+                        <td class="${signalClass}">${item.signal}</td>
                     </tr>`;
                 });
-            } catch (e) { console.log("Offline"); }
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error("Sync Error");
+            }
         }
-        fetchMarket();
-        setInterval(fetchMarket, 60000); // Jangan terlalu sering (1 menit sekali saja)
+        
+        fetchMarketData();
+        setInterval(fetchMarketData, 60000); // Update setiap 1 menit
     </script>
 </body>
 </html>
