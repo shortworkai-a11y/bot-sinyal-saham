@@ -3,33 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOVEREIGN v7.0 | QUANT</title>
+    <title>SOVEREIGN v7.0 | PREMIUM SCANNER</title>
     <style>
         :root { --bg: #0d1117; --panel: #161b22; --accent: #58a6ff; --border: #30363d; }
-        body { background: var(--bg); color: #c9d1d9; font-family: -apple-system, sans-serif; margin: 0; }
-        .header { padding: 20px; border-bottom: 1px solid var(--border); text-align: center; background: var(--panel); }
-        .tab-bar { display: flex; justify-content: center; gap: 10px; margin: 20px; }
-        .tab { padding: 10px 25px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: #8b949e; font-size: 13px; font-weight: bold; }
-        .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(88, 166, 255, 0.1); }
-        .table-wrap { max-width: 1100px; margin: auto; padding: 0 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-        th { background: #010409; padding: 15px; font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        body { background: var(--bg); color: #c9d1d9; font-family: 'Segoe UI', sans-serif; margin: 0; }
+        .header { padding: 25px; border-bottom: 1px solid var(--border); text-align: center; background: #010409; }
+        .tabs { display: flex; justify-content: center; background: var(--panel); border-bottom: 1px solid var(--border); }
+        .tab { padding: 15px 30px; cursor: pointer; color: #8b949e; font-weight: bold; border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(88, 166, 255, 0.05); }
+        .content { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
+        table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+        th { padding: 15px; font-size: 11px; color: #8b949e; border-bottom: 1px solid var(--border); text-align: center; }
         td { padding: 15px; border-bottom: 1px solid var(--border); text-align: center; font-size: 14px; }
-        .badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .badge { padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 style="margin:0; font-size: 22px; letter-spacing: 2px;">VANMORT SOVEREIGN</h1>
+        <h1 style="margin:0; font-size: 22px; letter-spacing: 2px;">VANMORT SOVEREIGN v7.0</h1>
+        <p style="font-size: 11px; color: #8b949e; margin-top:5px;">REAL-TIME VALUE INVESTING SCANNER</p>
     </div>
 
-    <div class="tab-bar">
-        <div class="tab active" onclick="switchTab('big', this)">BIG CAP</div>
-        <div class="tab" onclick="switchTab('mid', this)">MID CAP</div>
-        <div class="tab" onclick="switchTab('small', this)">SMALL CAP</div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('big', this)">BIG CAP (>2000)</div>
+        <div class="tab" onclick="switchTab('mid', this)">MID CAP (<2000)</div>
+        <div class="tab" onclick="switchTab('small', this)">SMALL CAP (<300)</div>
     </div>
 
-    <div class="table-wrap">
+    <div class="content">
         <table>
             <thead>
                 <tr>
@@ -39,47 +40,49 @@
                     <th>PBV</th>
                     <th>ROE</th>
                     <th>DER</th>
-                    <th>STATUS</th>
+                    <th>STRENGTH</th>
                 </tr>
             </thead>
-            <tbody id="content-table">
-                <tr><td colspan="7" style="padding:50px">Scanning 800+ IDX Stocks...</td></tr>
+            <tbody id="table-body">
+                <tr><td colspan="7" style="padding:100px">Menganalisa Fundamental Emiten...</td></tr>
             </tbody>
         </table>
     </div>
 
     <script>
-        let store = {};
-        let activeCat = 'big';
+        let dataStore = {};
+        let activeCategory = 'big';
 
-        async function start() {
+        async function fetchData() {
             try {
                 const res = await fetch('/api/signals');
-                store = await res.json();
+                dataStore = await res.json();
                 render();
             } catch (e) {
-                document.getElementById('content-table').innerHTML = '<tr><td colspan="7">API Error. Coba refresh halaman.</td></tr>';
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="7">Gagal memuat data API.</td></tr>';
             }
         }
 
         function switchTab(cat, el) {
-            activeCat = cat;
+            activeCategory = cat;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
             render();
         }
 
         function render() {
-            const tbody = document.getElementById('content-table');
-            const data = store[activeCat] || [];
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="padding:50px; color:#8b949e">Tidak ada emiten yang masuk radar saat ini.</td></tr>';
+            const tbody = document.getElementById('table-body');
+            const stocks = dataStore[activeCategory] || [];
+            
+            if (stocks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding:100px">Sistem tidak menemukan emiten yang layak di segmen ini.</td></tr>';
                 return;
             }
-            tbody.innerHTML = data.map(s => {
-                let color = '#8b949e';
-                if (s.status === 'PREMIUM') color = '#3fb950';
-                if (s.status === 'POTENTIAL') color = '#d29922';
+
+            tbody.innerHTML = stocks.map(s => {
+                let color = '#8b949e'; // Watchlist
+                if (s.status === 'PREMIUM') color = '#3fb950'; // Green
+                if (s.status === 'POTENTIAL') color = '#d29922'; // Orange
                 
                 return `
                     <tr>
@@ -89,11 +92,11 @@
                         <td>${s.pbv}x</td>
                         <td>${s.roe}%</td>
                         <td>${s.der}</td>
-                        <td><span class="badge" style="border:1px solid ${color}; color:${color}; background: ${color}1A">${s.status} (${s.score}/7)</span></td>
+                        <td><span class="badge" style="border:1px solid ${color}; color:${color}; background: ${color}1A">${s.status} (${s.score}/6)</span></td>
                     </tr>`;
             }).join('');
         }
-        start();
+        fetchData();
     </script>
 </body>
 </html>
